@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { QaseApi, ResultCreate, RunCreate } from 'qaseio';
-import { event, container } from 'codeceptjs';
+import { event, container, recorder } from 'codeceptjs';
 const helpers = container.helpers();
 
 const supportedHelpers = [
@@ -118,7 +118,11 @@ module.exports = (config) => {
 		});
 	});
 
-	event.dispatcher.once(event.all.after, async () => {
+	event.dispatcher.once(event.all.after, () => {
+		// CodeceptJS 4.x emits `event.all.after` synchronously and only awaits tasks
+		// queued in the recorder before exiting. Wrap the async teardown in
+		// `recorder.add` so the Qase API calls actually complete.
+		recorder.add('publish results to Qase', async () => {
 		const mergedTests = failedTests.concat(passedTests);
 
 		mergedTests.forEach(test => {
@@ -134,7 +138,7 @@ module.exports = (config) => {
 				runId = config.runId;
 			} else {
 
-				const existingRuns = await _getRuns(config.projectName);
+				const existingRuns = await _getRuns(config.projectName) || [];
 
 				if (existingRuns.length > 0 ) {
 					for (const run of existingRuns) {
@@ -154,28 +158,28 @@ module.exports = (config) => {
 
 		if (ids.length > 0) {
 
-			passedTests.forEach(test => {
+			for (const test of passedTests) {
 				try {
-					_createTestRunResult(config.projectName, runId, { caseId: test.case_id, status: 'passed', time_ms: test.elapsed } ).then(() => console.log());
+					await _createTestRunResult(config.projectName, runId, { caseId: test.case_id, status: 'passed', time_ms: test.elapsed } );
 				} catch (e) {
 					console.log(e);
 				}
+			}
 
-			});
-
-			failedTests.forEach(test => {
+			for (const test of failedTests) {
 				try {
 					const errorString = errors[test.case_id]['message'] ? errors[test.case_id]['message'].replace(/\u001b\[.*?m/g, '') : errors[test.case_id];
 
-					_createTestRunResult(config.projectName, runId, { caseId: test.case_id, status: 'failed', time_ms: test.elapsed, stacktrace: errorString } ).then(() => console.log());
+					await _createTestRunResult(config.projectName, runId, { caseId: test.case_id, status: 'failed', time_ms: test.elapsed, stacktrace: errorString } );
 				} catch (e) {
 					console.log(e);
 				}
-			});
+			}
 
 		} else {
 			console.log('There is no TC, hence no test run is created');
 		}
+		}, true, false);
 	});
 
 	return this;
