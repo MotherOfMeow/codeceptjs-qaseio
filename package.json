@@ -1,0 +1,49 @@
+{
+  "name": "@motherofmeow/codeceptjs-qase",
+  "version": "1.0.0",
+  "description": "CodeceptJS plugin for Qaseio",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MotherOfMeow/codeceptjs-qaseio.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "codeceptJS",
+    "codeceptjs",
+    "qaseio",
+    "qaseio-plugin"
+  ],
+  "author": "Anastasia M <motherofmeow77@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MotherOfMeow/codeceptjs-qaseio/issues"
+  },
+  "homepage": "https://github.com/MotherOfMeow/codeceptjs-qaseio#readme",
+  "engines": {
+    "node": ">=20.8.1"
+  },
+  "dependencies": {
+    "date-fns": "^4.4.0",
+    "qaseio": "^2.4.3",
+    "typescript": "^5.9.3",
+    "codeceptjs": "^4.1.0"
+  },
+  "scripts": {
+    "lint": "eslint . --fix",
+    "semantic-release": "semantic-release",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19",
+    "eslint": "^8.57.1",
+    "playwright": "^1.63.0",
+    "semantic-release": "^24.2.9"
+  },
+  "files": [
+    "dist/*"
+  ]
+}

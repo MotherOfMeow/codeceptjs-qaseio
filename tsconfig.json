@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2018",
+    "lib": ["es2018", "DOM"],
+    "esModuleInterop": true,
+    "module": "commonjs",
+    "strictNullChecks": false,
+    "types": ["node"],
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "skipLibCheck": true
+  },
+  "exclude": ["node_modules"]
+}
