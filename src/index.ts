@@ -54,15 +54,6 @@ module.exports = (config) => {
 		}
 	}
 
-	async function _getRuns(projectName): Promise<any> {
-		try {
-			const res = await qase.runs.getRuns(projectName);
-			return res.data.result.entities;
-		} catch (error) {
-			console.log(`Cannot get new test run due to ${JSON.stringify(error)}`);
-		}
-	}
-
 	async function _addTestRun(projectName:string, runName:string, cases: Array<number>, description: string, testRunTags?: Array<string>) {
 		try {
 			const runCreate: RunCreate = { title: runName, cases, description, tags: testRunTags };
@@ -123,40 +114,38 @@ module.exports = (config) => {
 		// queued in the recorder before exiting. Wrap the async teardown in
 		// `recorder.add` so the Qase API calls actually complete.
 		recorder.add('publish results to Qase', async () => {
-		const mergedTests = failedTests.concat(passedTests);
+			const mergedTests = failedTests.concat(passedTests);
 
-		mergedTests.forEach(test => {
-			for (const [key, value] of Object.entries(test)) {
-				if (key === 'case_id') {
-					ids.push(value);
-				}
-			}
-		});
-
-		try {
-			if (config.runId) {
-				runId = config.runId;
-			} else {
-
-				const existingRuns = await _getRuns(config.projectName) || [];
-
-				if (existingRuns.length > 0 ) {
-					for (const run of existingRuns) {
-						if (run.title !== runName) {
-							runId = await _addTestRun(config.projectName, runName, ids, config.description, config.testRunTags);
-							break;
-						}
+			mergedTests.forEach(test => {
+				for (const [key, value] of Object.entries(test)) {
+					if (key === 'case_id') {
+						ids.push(value);
 					}
+				}
+			});
+
+			if (ids.length === 0) {
+				console.log('Qase: no test cases tagged with @C<id> were run, nothing to report');
+				return;
+			}
+
+			// Always create a fresh run per execution. `runName` already carries the
+			// date; the previous "look up existing runs" logic could leave `runId`
+			// undefined, after which results were posted with NaN and silently rejected.
+			try {
+				if (config.runId) {
+					runId = config.runId;
 				} else {
 					runId = await _addTestRun(config.projectName, runName, ids, config.description, config.testRunTags);
 				}
+			} catch (error) {
+				console.log(error);
 			}
 
-		} catch (error) {
-			console.log(error);
-		}
-
-		if (ids.length > 0) {
+			if (!runId) {
+				console.log('Qase: test run was not created, skipping result upload');
+				return;
+			}
 
 			for (const test of passedTests) {
 				try {
@@ -176,9 +165,7 @@ module.exports = (config) => {
 				}
 			}
 
-		} else {
-			console.log('There is no TC, hence no test run is created');
-		}
+			console.log(`Qase: reported ${passedTests.length} passed / ${failedTests.length} failed result(s) to run ${runId}`);
 		}, true, false);
 	});
 
